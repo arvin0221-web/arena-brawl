@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Arena Brawl</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+TC:wght@400;500&display=swap');
+
+:root {
+  --bg:#080b10; --panel:#0f1520; --panel2:#131926;
+  --border:#1c2436; --border2:#243050;
+  --accent:#f0a500; --accent2:#2f8fff; --accent3:#ff3d5a;
+  --green:#00e57a; --text:#c8d0e0; --muted:#445060;
+  --self:#2f8fff; --ally:#00e57a; --enemy:#ff3d5a;
+  --r:10px; --r2:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:'Noto Sans TC',sans-serif;font-size:14px;touch-action:none;}
+
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:16px;overflow-y:auto;}
+.screen.hidden{display:none!important;}
+
+/* ── LOBBY ── */
+#s-lobby{gap:16px;background:var(--bg);}
+.title-wrap{text-align:center;}
+.game-title{font-family:'Orbitron',monospace;font-size:clamp(32px,8vw,56px);font-weight:900;
+  color:var(--accent);letter-spacing:.12em;text-shadow:0 0 40px rgba(240,165,0,.3);}
+.game-sub{font-family:'Orbitron',monospace;font-size:clamp(9px,2vw,12px);color:var(--muted);
+  letter-spacing:.4em;margin-top:4px;}
+
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:500px;}
+.mode-card{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--r2);
+  padding:16px 10px;cursor:pointer;transition:all .15s;text-align:center;user-select:none;}
+.mode-card:active,.mode-card.sel{border-color:var(--accent);background:#1a1500;}
+.mode-card:active{transform:scale(.97);}
+.mode-icon{font-size:22px;margin-bottom:6px;}
+.mode-name{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--accent);}
+.mode-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+
+.room-row{display:flex;gap:8px;width:100%;max-width:500px;}
+input[type=text]{flex:1;background:var(--panel);border:1.5px solid var(--border);border-radius:var(--r);
+  color:var(--text);padding:10px 14px;font-size:14px;font-family:inherit;outline:none;}
+input[type=text]:focus{border-color:var(--accent2);}
+input[type=text]::placeholder{color:var(--muted);}
+
+.btn{background:var(--accent);color:#080b10;border:none;border-radius:var(--r);
+  padding:10px 20px;font-family:'Orbitron',monospace;font-size:13px;font-weight:700;
+  cursor:pointer;letter-spacing:.06em;transition:all .12s;white-space:nowrap;user-select:none;}
+.btn:active{transform:scale(.95);opacity:.85;}
+.btn.sec{background:var(--panel);color:var(--text);border:1.5px solid var(--border);}
+.btn.sec:active{border-color:var(--accent2);}
+.btn.dng{background:var(--accent3);color:#fff;}
+.btn.blue{background:var(--accent2);color:#fff;}
+.btn.full{width:100%;max-width:500px;padding:14px;}
+
+.note{font-size:11px;color:var(--muted);text-align:center;max-width:460px;line-height:1.6;}
+.fb-badge{font-family:'Orbitron',monospace;font-size:10px;color:var(--green);
+  border:1px solid var(--green);border-radius:6px;padding:4px 10px;letter-spacing:.08em;}
+
+/* ── ATTR ── */
+#s-attr{gap:14px;background:var(--bg);}
+.attr-card{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--r2);
+  padding:20px;width:100%;max-width:460px;}
+.pts-big{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;
+  color:var(--accent);text-align:center;}
+.pts-lbl{text-align:center;font-size:10px;letter-spacing:.3em;color:var(--muted);
+  text-transform:uppercase;margin-top:-4px;margin-bottom:16px;}
+.a-row{display:flex;align-items:center;gap:10px;background:var(--bg);
+  border-radius:var(--r);padding:10px 12px;margin-bottom:10px;}
+.a-icon{font-size:18px;width:24px;text-align:center;}
+.a-name{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;width:44px;}
+.a-rate{font-size:10px;color:var(--muted);flex:1;}
+.a-ctrl{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.a-btn{width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);
+  background:var(--panel);color:var(--text);font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:.1s;user-select:none;}
+.a-btn:active{border-color:var(--accent);color:var(--accent);transform:scale(.9);}
+.a-val{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;
+  color:var(--accent);min-width:28px;text-align:center;}
+.a-tot{font-size:11px;color:var(--muted);min-width:38px;}
+.prev-wrap{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--r2);
+  padding:12px;display:flex;gap:20px;align-items:center;justify-content:center;
+  width:100%;max-width:460px;}
+.prev-item{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.prev-lbl{font-size:10px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;}
+
+/* ── WAITING ── */
+#s-wait{gap:16px;}
+.spinner{width:44px;height:44px;border:3px solid var(--border2);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.wait-title{font-family:'Orbitron',monospace;font-size:20px;color:var(--text);}
+.wait-info{font-size:13px;color:var(--muted);}
+.room-code-display{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;
+  color:var(--accent);letter-spacing:.25em;padding:10px 20px;
+  border:2px solid var(--accent);border-radius:var(--r2);}
+
+/* ── GAME ── */
+#s-game{padding:0;justify-content:flex-start;background:var(--bg);}
+#hud{display:flex;align-items:center;gap:10px;padding:8px 12px;
+  background:var(--panel);border-bottom:1px solid var(--border);width:100%;flex-shrink:0;}
+.hud-hp-wrap{flex:1;}
+.hud-hp-lbl{font-family:'Orbitron',monospace;font-size:10px;color:var(--muted);margin-bottom:3px;}
+.hud-bar{height:8px;background:#111;border-radius:4px;overflow:hidden;}
+.hud-bar-fill{height:100%;border-radius:4px;transition:width .2s,background .3s;}
+.hud-stat{font-family:'Orbitron',monospace;font-size:11px;color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;gap:1px;}
+.hud-stat span{color:var(--text);font-size:15px;font-weight:700;}
+.hud-cd{font-family:'Orbitron',monospace;font-size:11px;padding:4px 8px;
+  border-radius:7px;border:1px solid var(--border);background:var(--bg);
+  color:var(--muted);white-space:nowrap;}
+.hud-cd.rdy{border-color:var(--accent);color:var(--accent);}
+#canvas-wrap{flex:1;position:relative;width:100%;overflow:hidden;}
+#gc{display:block;width:100%;height:100%;}
+#mobile-ctrl{position:absolute;bottom:0;left:0;right:0;
+  padding:8px 16px 12px;pointer-events:none;
+  display:flex;justify-content:space-between;align-items:flex-end;}
+#joystick-zone{width:120px;height:120px;position:relative;pointer-events:auto;}
+#joystick-base{position:absolute;inset:0;border-radius:50%;
+  background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);}
+#joystick-thumb{position:absolute;width:46px;height:46px;border-radius:50%;
+  background:rgba(47,143,255,.5);border:2px solid var(--accent2);
+  top:50%;left:50%;transform:translate(-50%,-50%);}
+#atk-btn{width:72px;height:72px;border-radius:50%;background:rgba(255,61,90,.25);
+  border:2.5px solid var(--accent3);color:var(--accent3);font-family:'Orbitron',monospace;
+  font-size:12px;font-weight:700;pointer-events:auto;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;letter-spacing:.05em;}
+#atk-btn:active{background:rgba(255,61,90,.5);}
+#atk-btn.cd{opacity:.4;}
+#kill-log{position:absolute;top:6px;left:50%;transform:translateX(-50%);
+  font-family:'Orbitron',monospace;font-size:10px;color:var(--muted);
+  text-align:center;pointer-events:none;white-space:nowrap;letter-spacing:.04em;}
+#quit-btn{position:absolute;top:0;right:0;padding:8px 12px;
+  font-family:'Orbitron',monospace;font-size:10px;color:var(--accent3);
+  background:none;border:none;cursor:pointer;pointer-events:auto;letter-spacing:.06em;}
+
+/* ── RESULT ── */
+#s-result{gap:20px;}
+.res-title{font-family:'Orbitron',monospace;font-size:clamp(36px,10vw,64px);
+  font-weight:900;letter-spacing:.1em;}
+.res-win{color:var(--accent);}
+.res-lose{color:var(--accent3);}
+.res-card{background:var(--panel);border:1.5px solid var(--border);
+  border-radius:var(--r2);padding:20px 28px;text-align:center;min-width:260px;}
+.res-row{font-family:'Orbitron',monospace;font-size:15px;margin:8px 0;color:var(--text);}
+.res-row span{color:var(--accent);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOBBY ══ -->
+<div id="s-lobby" class="screen">
+  <div class="title-wrap">
+    <div class="game-title">ARENA</div>
+    <div class="game-title" style="margin-top:-12px;font-size:clamp(20px,5vw,34px);color:var(--accent2)">BRAWL</div>
+    <div class="game-sub">近戰競技場 · 多人即時對戰</div>
+  </div>
+
+  <div class="fb-badge" id="fb-badge">⟳ 連線中...</div>
+
+  <div class="mode-grid">
+    <div class="mode-card sel" data-mode="1v1" onclick="selMode(this)">
+      <div class="mode-icon">⚔️</div>
+      <div class="mode-name">1v1</div>
+      <div class="mode-desc">單挑匹配</div>
+    </div>
+    <div class="mode-card" data-mode="2v2" onclick="selMode(this)">
+      <div class="mode-icon">⚔️⚔️</div>
+      <div class="mode-name">2v2</div>
+      <div class="mode-desc">雙人匹配</div>
+    </div>
+    <div class="mode-card" data-mode="3v3" onclick="selMode(this)">
+      <div class="mode-icon">⚔️⚔️⚔️</div>
+      <div class="mode-name">3v3</div>
+      <div class="mode-desc">三人匹配</div>
+    </div>
+    <div class="mode-card" data-mode="ffa" onclick="selMode(this)">
+      <div class="mode-icon">🏆</div>
+      <div class="mode-name">混戰</div>
+      <div class="mode-desc">創建/加入房間</div>
+    </div>
+  </div>
+
+  <div id="ffa-row" class="room-row" style="display:none">
+    <input type="text" id="room-input" placeholder="房間代碼 (4–8字元)" maxlength="8"
+      oninput="this.value=this.value.toUpperCase()">
+    <button class="btn blue" onclick="doJoin()">加入</button>
+    <button class="btn" onclick="doCreate()">創建</button>
+  </div>
+
+  <button class="btn full" id="match-btn" onclick="goAttr()">開始匹配</button>
+
+  <div class="note">
+    📱 支援手機觸控虛擬搖桿・WASD / 空白鍵攻擊<br>
+    重載頁面視為直接退出對局
+  </div>
+</div>
+
+<!-- ══ ATTR ══ -->
+<div id="s-attr" class="screen hidden">
+  <div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--text)">
+    分配屬性點
+  </div>
+
+  <div class="prev-wrap">
+    <div class="prev-item">
+      <canvas id="prev-self" width="72" height="72"></canvas>
+      <div class="prev-lbl">自己</div>
+    </div>
+    <div class="prev-item">
+      <canvas id="prev-ally" width="72" height="72"></canvas>
+      <div class="prev-lbl">隊友</div>
+    </div>
+    <div class="prev-item">
+      <canvas id="prev-enemy" width="72" height="72"></canvas>
+      <div class="prev-lbl">敵人</div>
+    </div>
+  </div>
+
+  <div class="attr-card">
+    <div class="pts-big" id="pts-num">10</div>
+    <div class="pts-lbl">剩餘屬性點</div>
+    <div class="a-row">
+      <div class="a-icon">❤️</div>
+      <div class="a-name" style="color:var(--accent3)">血量</div>
+      <div class="a-rate">+5 HP / 點</div>
+      <div class="a-ctrl">
+        <button class="a-btn" onclick="adj('hp',-1)">−</button>
+        <div class="a-val" id="hp-v">0</div>
+        <button class="a-btn" onclick="adj('hp',1)">+</button>
+      </div>
+      <div class="a-tot" id="hp-t">= 5</div>
+    </div>
+    <div class="a-row">
+      <div class="a-icon">⚔️</div>
+      <div class="a-name" style="color:var(--accent)">攻擊</div>
+      <div class="a-rate">+1 ATK / 點</div>
+      <div class="a-ctrl">
+        <button class="a-btn" onclick="adj('atk',-1)">−</button>
+        <div class="a-val" id="atk-v">0</div>
+        <button class="a-btn" onclick="adj('atk',1)">+</button>
+      </div>
+      <div class="a-tot" id="atk-t">= 1</div>
+    </div>
+    <div class="a-row">
+      <div class="a-icon">🛡️</div>
+      <div class="a-name" style="color:var(--accent2)">防禦</div>
+      <div class="a-rate">+1 DEF / 點</div>
+      <div class="a-ctrl">
+        <button class="a-btn" onclick="adj('def',-1)">−</button>
+        <div class="a-val" id="def-v">0</div>
+        <button class="a-btn" onclick="adj('def',1)">+</button>
+      </div>
+      <div class="a-tot" id="def-t">= 0</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;width:100%;max-width:460px">
+    <button class="btn sec" style="flex:1" onclick="showScreen('s-lobby')">返回</button>
+    <button class="btn" style="flex:2" onclick="enterGame()">進入競技場</button>
+  </div>
+</div>
+
+<!-- ══ WAITING ══ -->
+<div id="s-wait" class="screen hidden">
+  <div class="spinner"></div>
+  <div class="wait-title" id="wait-title">等待玩家中...</div>
+  <div class="wait-info" id="wait-info"></div>
+  <div class="room-code-display" id="room-display" style="display:none"></div>
+  <div style="font-size:11px;color:var(--muted)" id="share-hint" style="display:none">
+    將房間代碼分享給朋友
+  </div>
+  <button class="btn sec" onclick="cancelWait()">取消</button>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="s-game" class="screen hidden">
+  <div id="hud">
+    <div class="hud-hp-wrap">
+      <div class="hud-hp-lbl">HP <span id="h-hp">5</span> / <span id="h-mhp">5</span></div>
+      <div class="hud-bar"><div class="hud-bar-fill" id="h-bar" style="width:100%;background:var(--green)"></div></div>
+    </div>
+    <div class="hud-stat">ATK<span id="h-atk">1</span></div>
+    <div class="hud-stat">DEF<span id="h-def">0</span></div>
+    <div class="hud-cd rdy" id="h-cd">READY</div>
+    <button id="quit-btn" onclick="leaveGame()">✕ 退出</button>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="gc"></canvas>
+    <div id="kill-log"></div>
+    <div id="mobile-ctrl">
+      <div id="joystick-zone">
+        <div id="joystick-base"></div>
+        <div id="joystick-thumb"></div>
+      </div>
+      <button id="atk-btn" onclick="tryAtk()">ATK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESULT ══ -->
+<div id="s-result" class="screen hidden">
+  <div class="res-title" id="res-title">勝利</div>
+  <div class="res-card" id="res-card"></div>
+  <div style="display:flex;gap:10px">
+    <button class="btn" onclick="showScreen('s-lobby')">返回大廳</button>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+// ══ FIREBASE INIT ══
+const firebaseConfig = {
+  apiKey: "AIzaSyBYWRN_sQ45xynOy_yycJVSDV84UXjMfU8",
+  authDomain: "arena-brawl-aa748.firebaseapp.com",
+  databaseURL: "https://arena-brawl-aa748-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "arena-brawl-aa748",
+  storageBucket: "arena-brawl-aa748.firebasestorage.app",
+  messagingSenderId: "955531040703",
+  appId: "1:955531040703:web:fd75387a7ae106caa6f30a",
+  measurementId: "G-06DCKZ5V6Z"
+};
+
+firebase.initializeApp(firebaseConfig);
+const fbDB = firebase.database();
+
+// 連線狀態
+fbDB.ref('.info/connected').on('value', snap => {
+  const badge = document.getElementById('fb-badge');
+  if (snap.val()) {
+    badge.textContent = '● Firebase 已連線';
+    badge.style.color = 'var(--green)';
+    badge.style.borderColor = 'var(--green)';
+  } else {
+    badge.textContent = '○ 連線中斷';
+    badge.style.color = 'var(--accent3)';
+    badge.style.borderColor = 'var(--accent3)';
+  }
+});
+
+// ══ CONSTANTS ══
+const SPD = 130, ATK_RANGE = 52, ATK_CD_MS = 800, KB = 85, P_R = 17;
+
+// ══ STATE ══
+let mode = '1v1', roomCode = '';
+let pts = {hp:0, atk:0, def:0}, ptsLeft = 10;
+let gs = null, myId = null, myTeam = null;
+let raf = null, lastT = 0;
+let keys = {}, joyDir = {x:0, y:0};
+let kills = [];
+let fbMatchRef = null, syncInterval = null;
+let CW = 0, CH = 0;
+
+const gc = document.getElementById('gc');
+const ctx = gc.getContext('2d');
+
+// ══ SCREENS ══
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function selMode(el) {
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  mode = el.dataset.mode;
+  const ffaRow = document.getElementById('ffa-row');
+  const matchBtn = document.getElementById('match-btn');
+  if (mode === 'ffa') {
+    ffaRow.style.display = 'flex';
+    matchBtn.style.display = 'none';
+  } else {
+    ffaRow.style.display = 'none';
+    matchBtn.style.display = 'block';
+  }
+}
+
+function goAttr() {
+  pts = {hp:0, atk:0, def:0}; ptsLeft = 10;
+  updAttrUI(); drawPreviews();
+  showScreen('s-attr');
+}
+
+function doCreate() {
+  roomCode = Math.random().toString(36).slice(2,6).toUpperCase();
+  goAttr();
+}
+
+function doJoin() {
+  const v = document.getElementById('room-input').value.trim().toUpperCase();
+  if (!v) { alert('請輸入房間代碼'); return; }
+  roomCode = v;
+  goAttr();
+}
+
+// ══ ATTR ══
+function adj(k, d) {
+  const nv = pts[k] + d, np = ptsLeft - d;
+  if (nv < 0 || np < 0 || np > 10) return;
+  pts[k] = nv; ptsLeft = np;
+  updAttrUI(); drawPreviews();
+}
+
+function updAttrUI() {
+  document.getElementById('pts-num').textContent = ptsLeft;
+  document.getElementById('hp-v').textContent = pts.hp;
+  document.getElementById('atk-v').textContent = pts.atk;
+  document.getElementById('def-v').textContent = pts.def;
+  document.getElementById('hp-t').textContent = '= ' + (5 + pts.hp * 5);
+  document.getElementById('atk-t').textContent = '= ' + (1 + pts.atk);
+  document.getElementById('def-t').textContent = '= ' + pts.def;
+}
+
+function drawPreviews() {
+  ['self','ally','enemy'].forEach(t => {
+    const c = document.getElementById('prev-' + t);
+    const x = c.getContext('2d');
+    x.clearRect(0,0,72,72);
+    x.fillStyle = '#0d0f14'; x.fillRect(0,0,72,72);
+    drawChar(x, 36, 36, 14, t, true);
+  });
+}
+
+// ══ ENTER GAME ══
+async function enterGame() {
+  const hp = 5 + pts.hp * 5;
+  const atk = 1 + pts.atk;
+  const def = pts.def;
+  myId = 'p_' + Math.random().toString(36).slice(2,9);
+  await enterFirebaseGame(hp, atk, def);
+}
+
+// ══ FIREBASE MATCHMAKING ══
+async function enterFirebaseGame(hp, atk, def) {
+  showScreen('s-wait');
+
+  const needPlayers = { '1v1':2, '2v2':4, '3v3':6, 'ffa':2 }[mode];
+
+  // 匹配制：每30秒一個匹配池；房間制：用指定代碼
+  let matchPath;
+  if (mode === 'ffa') {
+    if (!roomCode) roomCode = Math.random().toString(36).slice(2,6).toUpperCase();
+    matchPath = 'matches/ffa_' + roomCode;
+    document.getElementById('room-display').style.display = 'block';
+    document.getElementById('room-display').textContent = roomCode;
+    document.getElementById('share-hint').style.display = 'block';
+    document.getElementById('wait-title').textContent = '等待朋友加入...';
+  } else {
+    matchPath = 'matches/queue_' + mode + '_' + Math.floor(Date.now() / 30000);
+    document.getElementById('room-display').style.display = 'none';
+    document.getElementById('share-hint').style.display = 'none';
+    document.getElementById('wait-title').textContent = '配對中...';
+  }
+
+  fbMatchRef = fbDB.ref(matchPath);
+
+  // 自動清理：斷線時移除自己
+  fbMatchRef.child('players/' + myId).onDisconnect().remove();
+
+  const myData = {
+    id: myId,
+    hp, maxHp: hp, atk, def,
+    x: 400, y: 290,
+    alive: true, atkCd: 0,
+    kx: 0, ky: 0,
+    joinedAt: firebase.database.ServerValue.TIMESTAMP
+  };
+  await fbMatchRef.child('players/' + myId).set(myData);
+
+  // 監聽玩家數量
+  fbMatchRef.child('players').on('value', snap => {
+    const players = snap.val();
+    if (!players) return;
+    const ids = Object.keys(players);
+    document.getElementById('wait-info').textContent =
+      `已加入 ${ids.length} / ${needPlayers} 人`;
+
+    if (ids.length >= needPlayers) {
+      fbMatchRef.child('players').off();
+      assignAndStart(players, hp, atk, def, needPlayers);
+    }
+  });
+}
+
+async function assignAndStart(players, hp, atk, def, need) {
+  const ids = Object.keys(players)
+    .sort((a,b) => (players[a].joinedAt||0) - (players[b].joinedAt||0))
+    .slice(0, need);
+
+  // 第一位玩家負責分配隊伍和出生點
+  if (ids[0] === myId) {
+    const spawns = getSpawns();
+    const updates = {};
+    ids.forEach((id, i) => {
+      const sp = spawns[i];
+      updates[id + '/team'] = sp.team;
+      updates[id + '/x'] = sp.x;
+      updates[id + '/y'] = sp.y;
+    });
+    await fbMatchRef.child('players').update(updates);
+    await fbMatchRef.child('status').set('playing');
+  }
+
+  // 等待 status = playing
+  fbMatchRef.child('status').on('value', snap => {
+    if (snap.val() === 'playing') {
+      fbMatchRef.child('status').off();
+      startMatch(players, ids, hp, atk, def);
+    }
+  });
+}
+
+function startMatch(rawPlayers, ids, hp, atk, def) {
+  const spawns = getSpawns();
+  gs = { mode, players: [] };
+
+  ids.forEach((id, i) => {
+    const isMe = id === myId;
+    const sp = spawns[i];
+    const raw = rawPlayers[id] || {};
+    gs.players.push({
+      id, isMe,
+      team: sp.team,
+      hp:    isMe ? hp  : (raw.maxHp || 5),
+      maxHp: isMe ? hp  : (raw.maxHp || 5),
+      atk:   isMe ? atk : (raw.atk   || 1),
+      def:   isMe ? def : (raw.def   || 0),
+      x: sp.x, y: sp.y,
+      alive: true, atkCd: 0,
+      kx:0, ky:0, kt:0,
+    });
+  });
+
+  myTeam = gs.players.find(p => p.isMe)?.team ?? 0;
+  kills = []; keys = {}; joyDir = {x:0,y:0};
+
+  // 監聽其他玩家狀態
+  fbMatchRef.child('players').on('value', snap => {
+    const data = snap.val(); if (!data) return;
+    gs.players.forEach(p => {
+      if (p.isMe) return;
+      const d = data[p.id]; if (!d) return;
+      const prevHp = p.hp;
+      p.x = d.x ?? p.x;
+      p.y = d.y ?? p.y;
+      p.hp = d.hp ?? p.hp;
+      p.alive = d.alive ?? p.alive;
+      if (d.hp < prevHp) { p.kx = d.kx||0; p.ky = d.ky||0; p.kt = 0.22; }
+    });
+  });
+
+  // 定期上傳自己狀態
+  syncInterval = setInterval(uploadMe, 50);
+
+  initCanvas();
+  showScreen('s-game');
+  setupMobileCtrl();
+  updHUD();
+  lastT = 0;
+  raf = requestAnimationFrame(loop);
+}
+
+function uploadMe() {
+  const me = getMe();
+  if (!me || !fbMatchRef) return;
+  fbMatchRef.child('players/' + myId).update({
+    x: Math.round(me.x),
+    y: Math.round(me.y),
+    hp: me.hp,
+    alive: me.alive,
+    kx: Math.round(me.kx),
+    ky: Math.round(me.ky),
+  });
+}
+
+function cancelWait() {
+  if (fbMatchRef) { fbMatchRef.child('players/' + myId).remove(); fbMatchRef = null; }
+  showScreen('s-lobby');
+}
+
+// ══ GAME LOOP ══
+function loop(ts) {
+  const dt = Math.min((ts - lastT) / 1000, 0.05);
+  lastT = ts;
+  update(dt);
+  render();
+  checkEnd();
+  raf = requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  const me = getMe();
+  if (!me || !me.alive) return;
+
+  let dx = joyDir.x, dy = joyDir.y;
+  if (keys['w'] || keys['arrowup'])    dy -= 1;
+  if (keys['s'] || keys['arrowdown'])  dy += 1;
+  if (keys['a'] || keys['arrowleft'])  dx -= 1;
+  if (keys['d'] || keys['arrowright']) dx += 1;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len > 0) {
+    me.x += (dx/len) * SPD * dt;
+    me.y += (dy/len) * SPD * dt;
+  }
+  me.x = clamp(me.x, P_R, CW - P_R);
+  me.y = clamp(me.y, P_R, CH - P_R);
+  me.atkCd = Math.max(0, me.atkCd - dt * 1000);
+
+  // 擊退
+  gs.players.forEach(p => {
+    if (!p.alive || p.kt <= 0) return;
+    p.x += p.kx * dt; p.y += p.ky * dt;
+    p.kt -= dt;
+    p.x = clamp(p.x, P_R, CW - P_R);
+    p.y = clamp(p.y, P_R, CH - P_R);
+  });
+
+  updHUD();
+}
+
+// ══ COMBAT ══
+function tryAtk() {
+  const me = getMe();
+  if (!me || me.atkCd > 0) return;
+  enemies(me)
+    .filter(e => dst(me, e) <= ATK_RANGE)
+    .forEach(e => dealDmg(me, e));
+  me.atkCd = ATK_CD_MS;
+}
+
+function dealDmg(src, tgt) {
+  const dmg = Math.max(1, src.atk - tgt.def);
+  tgt.hp -= dmg;
+  const dx = tgt.x - src.x, dy = tgt.y - src.y;
+  const d = Math.sqrt(dx*dx + dy*dy) || 1;
+  tgt.kx = (dx/d) * KB; tgt.ky = (dy/d) * KB; tgt.kt = 0.22;
+
+  if (tgt.hp <= 0) {
+    tgt.hp = 0; tgt.alive = false;
+    const sk = src.isMe ? 'YOU' : src.team === myTeam ? 'ALLY' : 'FOE';
+    const tk = tgt.isMe ? 'YOU' : tgt.team === myTeam ? 'ALLY' : 'FOE';
+    addLog(sk + ' ➜ ' + tk);
+    if (tgt.isMe) uploadMe();
+  }
+}
+
+function enemies(p) {
+  return gs.players.filter(q =>
+    q.alive && q.id !== p.id && (mode === 'ffa' || q.team !== p.team));
+}
+function getMe() { return gs?.players.find(p => p.isMe); }
+function dst(a,b) { return Math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2); }
+function clamp(v,mn,mx) { return Math.max(mn, Math.min(mx, v)); }
+
+// ══ RENDER ══
+function render() {
+  ctx.clearRect(0, 0, CW, CH);
+  ctx.fillStyle = '#080b10'; ctx.fillRect(0, 0, CW, CH);
+
+  // grid
+  ctx.strokeStyle = '#111520'; ctx.lineWidth = 1;
+  for (let x = 0; x < CW; x += 55) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,CH); ctx.stroke(); }
+  for (let y = 0; y < CH; y += 55) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(CW,y); ctx.stroke(); }
+  ctx.strokeStyle = '#1c2436'; ctx.lineWidth = 2;
+  ctx.strokeRect(2, 2, CW-4, CH-4);
+
+  if (!gs) return;
+  const me = getMe();
+
+  // 攻擊範圍圈
+  if (me?.alive) {
+    ctx.beginPath(); ctx.arc(me.x, me.y, ATK_RANGE, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(47,143,255,0.12)'; ctx.lineWidth = 1;
+    ctx.setLineDash([5,5]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  gs.players.forEach(p => {
+    if (p.alive) drawChar(ctx, p.x, p.y, P_R, charType(p), false, p);
+  });
+}
+
+function charType(p) {
+  if (p.isMe) return 'self';
+  if (mode !== 'ffa' && p.team === myTeam) return 'ally';
+  return 'enemy';
+}
+
+function drawChar(c, cx, cy, r, type, preview=false, p=null) {
+  const cols = {
+    self:  ['#0f1f3a','#2f8fff','#6ab5ff'],
+    ally:  ['#0a2015','#00e57a','#70f0b0'],
+    enemy: ['#2a0808','#ff3d5a','#ff8899']
+  };
+  const col = cols[type];
+
+  c.save();
+  c.shadowColor = col[1]; c.shadowBlur = preview ? 8 : 14;
+  c.beginPath(); c.arc(cx, cy, r, 0, Math.PI*2);
+  c.fillStyle = col[0]; c.strokeStyle = col[1]; c.lineWidth = 2.5;
+  c.fill(); c.stroke();
+  c.restore();
+
+  c.strokeStyle = col[2]; c.lineWidth = 1.5;
+  if (type === 'self') {
+    const s = r * 0.55;
+    c.beginPath();
+    c.moveTo(cx, cy-s); c.lineTo(cx+s*.87, cy+s*.5); c.lineTo(cx-s*.87, cy+s*.5);
+    c.closePath(); c.stroke();
+  } else if (type === 'ally') {
+    const s = r * 0.52;
+    c.beginPath();
+    c.moveTo(cx, cy-s); c.lineTo(cx+s, cy); c.lineTo(cx, cy+s); c.lineTo(cx-s, cy);
+    c.closePath(); c.stroke();
+  } else {
+    const s = r * 0.46;
+    c.beginPath(); c.moveTo(cx-s, cy-s); c.lineTo(cx+s, cy+s); c.stroke();
+    c.beginPath(); c.moveTo(cx+s, cy-s); c.lineTo(cx-s, cy+s); c.stroke();
+  }
+
+  c.beginPath(); c.arc(cx, cy, r*0.2, 0, Math.PI*2);
+  c.fillStyle = col[1]; c.fill();
+
+  if (preview || !p) return;
+
+  // HP bar
+  const bw = r*2+10, bh = 4, bx = cx-bw/2, by = cy-r-10;
+  c.fillStyle = '#111'; c.fillRect(bx, by, bw, bh);
+  const pct = Math.max(0, p.hp / p.maxHp);
+  c.fillStyle = pct>.6 ? '#00e57a' : pct>.3 ? '#f0a500' : '#ff3d5a';
+  c.fillRect(bx, by, bw*pct, bh);
+
+  // label
+  c.fillStyle = col[1];
+  c.font = `bold 9px 'Orbitron',monospace`;
+  c.textAlign = 'center'; c.textBaseline = 'bottom';
+  c.fillText(type==='self'?'YOU':type==='ally'?'ALLY':'FOE', cx, by-2);
+}
+
+// ══ HUD ══
+function updHUD() {
+  const me = getMe(); if (!me) return;
+  document.getElementById('h-hp').textContent = Math.max(0, me.hp);
+  document.getElementById('h-mhp').textContent = me.maxHp;
+  document.getElementById('h-atk').textContent = me.atk;
+  document.getElementById('h-def').textContent = me.def;
+  const pct = Math.max(0, me.hp / me.maxHp * 100);
+  const bar = document.getElementById('h-bar');
+  bar.style.width = pct + '%';
+  bar.style.background = pct>60 ? '#00e57a' : pct>30 ? '#f0a500' : '#ff3d5a';
+  const cd = document.getElementById('h-cd');
+  if (me.atkCd <= 0) { cd.textContent='READY'; cd.className='hud-cd rdy'; }
+  else { cd.textContent=(me.atkCd/1000).toFixed(1)+'s'; cd.className='hud-cd'; }
+  const ab = document.getElementById('atk-btn');
+  if (ab) ab.className = me.atkCd > 0 ? 'cd' : '';
+}
+
+function addLog(msg) {
+  kills.push(msg);
+  if (kills.length > 3) kills.shift();
+  document.getElementById('kill-log').textContent = kills.join(' · ');
+}
+
+// ══ WIN CHECK ══
+function checkEnd() {
+  if (!gs) return;
+  const me = getMe(); if (!me) return;
+  let win = false, lose = false;
+  if (mode === 'ffa') {
+    const alive = gs.players.filter(p => p.alive);
+    if (alive.length === 1 && alive[0].isMe) win = true;
+    if (!me.alive) lose = true;
+  } else {
+    const aliveEnemy = gs.players.filter(p => p.alive && p.team !== myTeam);
+    if (aliveEnemy.length === 0) win = true;
+    if (!me.alive) lose = true;
+  }
+  if (win || lose) {
+    cancelAnimationFrame(raf); raf = null;
+    clearInterval(syncInterval); syncInterval = null;
+    uploadMe();
+    setTimeout(() => showResult(win), 600);
+  }
+}
+
+function showResult(win) {
+  document.getElementById('res-title').textContent = win ? '勝利' : '落敗';
+  document.getElementById('res-title').className = 'res-title ' + (win ? 'res-win' : 'res-lose');
+  const me = getMe();
+  if (me) document.getElementById('res-card').innerHTML =
+    `<div class="res-row">血量上限 <span>${me.maxHp}</span></div>
+     <div class="res-row">攻擊力 <span>${me.atk}</span></div>
+     <div class="res-row">防禦力 <span>${me.def}</span></div>`;
+  if (fbMatchRef) {
+    fbMatchRef.child('players/' + myId).onDisconnect().cancel();
+    fbMatchRef = null;
+  }
+  showScreen('s-result');
+}
+
+function leaveGame() {
+  cancelAnimationFrame(raf); raf = null;
+  clearInterval(syncInterval); syncInterval = null;
+  if (fbMatchRef) { fbMatchRef.child('players/' + myId).remove(); fbMatchRef = null; }
+  showScreen('s-lobby');
+}
+
+// ══ SPAWNS ══
+function getSpawns() {
+  const W = CW || 820, H = CH || 560;
+  if (mode==='1v1') return [
+    {team:0, x:W*.22, y:H*.5}, {team:1, x:W*.78, y:H*.5}];
+  if (mode==='2v2') return [
+    {team:0, x:W*.18, y:H*.33}, {team:0, x:W*.18, y:H*.67},
+    {team:1, x:W*.82, y:H*.33}, {team:1, x:W*.82, y:H*.67}];
+  if (mode==='3v3') return [
+    {team:0, x:W*.15, y:H*.2}, {team:0, x:W*.15, y:H*.5}, {team:0, x:W*.15, y:H*.8},
+    {team:1, x:W*.85, y:H*.2}, {team:1, x:W*.85, y:H*.5}, {team:1, x:W*.85, y:H*.8}];
+  return [
+    {team:0, x:W*.2, y:H*.2}, {team:1, x:W*.8, y:H*.2},
+    {team:2, x:W*.2, y:H*.8}, {team:3, x:W*.8, y:H*.8},
+    {team:4, x:W*.5, y:H*.1}, {team:5, x:W*.5, y:H*.9}];
+}
+
+// ══ CANVAS ══
+function initCanvas() {
+  const wrap = document.getElementById('canvas-wrap');
+  CW = wrap.clientWidth; CH = wrap.clientHeight;
+  gc.width = CW; gc.height = CH;
+}
+
+window.addEventListener('resize', () => {
+  if (!document.getElementById('s-game').classList.contains('hidden')) {
+    initCanvas();
+    if (gs) gs.players.forEach(p => {
+      p.x = clamp(p.x, P_R, CW-P_R);
+      p.y = clamp(p.y, P_R, CH-P_R);
+    });
+  }
+});
+
+// ══ KEYBOARD ══
+document.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === ' ') { e.preventDefault(); tryAtk(); }
+});
+document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// ══ MOBILE JOYSTICK ══
+function setupMobileCtrl() {
+  const zone = document.getElementById('joystick-zone');
+  const thumb = document.getElementById('joystick-thumb');
+  let joyId = -1, origin = {x:0, y:0};
+
+  zone.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    joyId = t.identifier;
+    const r = zone.getBoundingClientRect();
+    origin = {x: r.left+r.width/2, y: r.top+r.height/2};
+    moveJoy(t.clientX, t.clientY);
+  }, {passive:false});
+
+  document.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (t.identifier === joyId) { moveJoy(t.clientX, t.clientY); break; }
+    }
+  }, {passive:false});
+
+  document.addEventListener('touchend', e => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === joyId) {
+        joyId = -1; joyDir = {x:0,y:0};
+        thumb.style.transform = 'translate(-50%,-50%)';
+        break;
+      }
+    }
+  });
+
+  function moveJoy(cx, cy) {
+    const dx = cx-origin.x, dy = cy-origin.y;
+    const d = Math.sqrt(dx*dx+dy*dy), maxR = 46;
+    const nx = dx/Math.max(d,1), ny = dy/Math.max(d,1);
+    joyDir = {x:nx, y:ny};
+    const off = Math.min(d, maxR);
+    thumb.style.transform = `translate(calc(-50% + ${nx*off}px), calc(-50% + ${ny*off}px))`;
+  }
+}
+
+document.getElementById('s-game').addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+
+// ══ 重載 = 退出 ══
+window.addEventListener('beforeunload', () => {
+  if (fbMatchRef && myId) fbMatchRef.child('players/' + myId).remove();
+});
+
+// init
+drawPreviews();
+</script>
+</body>
+</html>
