@@ -340,15 +340,27 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const fbDB = firebase.database();
 
-// 連線狀態
+// 連線狀態顯示（純顯示用，不阻擋任何操作）
+const badge = document.getElementById('fb-badge');
+badge.textContent = '⟳ 連線中...';
+
+// 超時3秒還沒連上就顯示警告但仍可操作
+const fbConnTimeout = setTimeout(() => {
+  if (badge.textContent.includes('連線中')) {
+    badge.textContent = '⚠ 連線緩慢（仍可嘗試）';
+    badge.style.color = 'var(--accent)';
+    badge.style.borderColor = 'var(--accent)';
+  }
+}, 3000);
+
 fbDB.ref('.info/connected').on('value', snap => {
-  const badge = document.getElementById('fb-badge');
+  clearTimeout(fbConnTimeout);
   if (snap.val()) {
     badge.textContent = '● Firebase 已連線';
     badge.style.color = 'var(--green)';
     badge.style.borderColor = 'var(--green)';
   } else {
-    badge.textContent = '○ 連線中斷';
+    badge.textContent = '○ 未連線';
     badge.style.color = 'var(--accent3)';
     badge.style.borderColor = 'var(--accent3)';
   }
